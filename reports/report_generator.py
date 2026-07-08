@@ -64,7 +64,10 @@ class ReportGenerator:
 
     def save_all(self, results: dict[str, Any], base_name: str) -> dict[str, str]:
         enriched = self.enrich_results(results)
-        paths = {'txt': str(self.save_txt(enriched, base_name)), 'html': str(self.save_html(enriched, base_name)), 'csv': str(self.save_csv(enriched, base_name)), 'ppt': str(self.save_ppt(enriched, base_name))}
+        paths = {'txt': str(self.save_txt(enriched, base_name)), 'html': str(self.save_html(enriched, base_name)), 'csv': str(self.save_csv(enriched, base_name))}
+        ppt_path = self.save_ppt(enriched, base_name)
+        if ppt_path:
+            paths['ppt'] = str(ppt_path)
         pdf_path = self.save_pdf(enriched, base_name)
         if pdf_path:
             paths['pdf'] = str(pdf_path)
@@ -98,10 +101,15 @@ class ReportGenerator:
             writer.writerow(['ssl', ssl_status.get('host'), ssl_status.get('tls_version'), ssl_status.get('valid'), ssl_status.get('expiry_date')])
         return path
 
-    def save_ppt(self, results: dict[str, Any], base_name: str) -> Path:
-        from pptx import Presentation
-        from pptx.util import Inches, Pt
-        from pptx.dml.color import RGBColor
+    def save_ppt(self, results: dict[str, Any], base_name: str) -> Path | None:
+        try:
+            from pptx import Presentation
+            from pptx.util import Inches, Pt
+            from pptx.dml.color import RGBColor
+        except ModuleNotFoundError:
+            note_path = self.output_dir / f'{base_name}_ppt_not_created.txt'
+            note_path.write_text('PPTX report was not created because python-pptx is not installed. Run: pip install -r requirements.txt', encoding='utf-8-sig')
+            return None
         prs = Presentation()
         prs.slide_width = Inches(13.333)
         prs.slide_height = Inches(7.5)
